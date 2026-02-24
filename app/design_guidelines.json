@@ -1,0 +1,128 @@
+{
+  "identity": {
+    "name": "Mall Command",
+    "persona": "E1 - The Anti-AI Designer",
+    "tone": "Tactical Luxury",
+    "description": "A high-precision command center for mall operations. Managers have a 'God View' of the floor plan; Supervisors have a 'Scanner' for tasks. The aesthetic blends high-end retail (luxury, space, light) with military-grade logistics (precision, maps, data).",
+    "principles": [
+      "Fusion: Luxury Retail x Logistics Dashboard",
+      "Emotion: Control & Clarity",
+      "Content: Data is the hero",
+      "Zoom: Focus on the task at hand"
+    ]
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tight",
+      "h2": "text-3xl md:text-4xl font-semibold tracking-tight",
+      "h3": "text-2xl font-semibold",
+      "h4": "text-xl font-medium",
+      "body_lg": "text-lg leading-relaxed",
+      "body": "text-base leading-relaxed",
+      "caption": "text-sm text-muted-foreground",
+      "label": "text-xs font-bold uppercase tracking-widest text-muted-foreground"
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#0f172a", 
+        "foreground": "#f8fafc",
+        "hover": "#1e293b"
+      },
+      "secondary": {
+        "DEFAULT": "#f1f5f9",
+        "foreground": "#0f172a"
+      },
+      "accent": {
+        "DEFAULT": "#2563eb", 
+        "foreground": "#ffffff",
+        "geofence": "#f59e0b",
+        "success": "#10b981",
+        "error": "#ef4444"
+      },
+      "background": {
+        "DEFAULT": "#ffffff",
+        "subtle": "#f8fafc",
+        "card": "#ffffff",
+        "overlay": "rgba(15, 23, 42, 0.4)"
+      },
+      "border": {
+        "DEFAULT": "#e2e8f0",
+        "active": "#cbd5e1"
+      }
+    },
+    "usage": {
+      "manager_dashboard": "Light mode, high density. White cards on pale slate background.",
+      "supervisor_app": "Light mode, high contrast. Big touch targets. Clear status indicators.",
+      "geofence_visuals": "Use Amber-500 for the 'fence' lines and Blue-600 for the user location."
+    }
+  },
+  "layout_strategies": {
+    "manager_portal": {
+      "structure": "Sidebar Navigation (Fixed Left) + Main Content Area",
+      "grid_system": "Bento Grid (Mode B: High Density). Use grid-cols-12 for granular control.",
+      "spacing": "Compact but breathable. p-6 for containers, gap-4 for grids.",
+      "dashboard_widgets": [
+        "Stats Row (4 cards, col-span-3 each)",
+        "Map View (col-span-8 row-span-2) - The 'God View'",
+        "Live Feed (col-span-4 row-span-2) - Real-time task updates"
+      ]
+    },
+    "supervisor_app": {
+      "structure": "Mobile PWA style. Bottom Navigation (optional) or Top Bar with Drawer.",
+      "view_mode": "Single Column Stack. Cards for tasks.",
+      "interactions": "Swipe to complete (if possible) or Large Bottom Sheet for details.",
+      "constraints": "Tap targets must be min 44px. No hover states."
+    }
+  },
+  "component_rules": {
+    "buttons": {
+      "primary": "rounded-md px-6 py-2.5 font-medium transition-all active:scale-95 shadow-sm hover:shadow-md",
+      "mobile_action": "w-full py-4 text-lg font-bold rounded-xl shadow-lg fixed bottom-6 left-0 right-0 mx-4"
+    },
+    "cards": {
+      "dashboard": "border border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow duration-200 rounded-xl",
+      "mobile_task": "border-l-4 border-l-primary bg-white shadow-sm rounded-r-lg mb-3 p-4 active:bg-slate-50"
+    },
+    "inputs": {
+      "default": "h-11 rounded-md border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    },
+    "maps": {
+      "container": "relative w-full h-full rounded-xl overflow-hidden border border-border",
+      "style": "Use a desaturated, 'light-grey' map style to make the colored geofence overlays pop."
+    }
+  },
+  "assets": {
+    "images": {
+      "login_bg": "https://images.unsplash.com/photo-1761333482894-700fc6aebd47?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "store_placeholder_1": "https://images.unsplash.com/photo-1759323321196-2813db509285?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "store_placeholder_2": "https://images.unsplash.com/photo-1759153820384-12c9ddf8bd8d?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "mall_context": "https://images.unsplash.com/photo-1766600115358-1c5ce9c7c87d?crop=entropy&cs=srgb&fm=jpg&q=85"
+    },
+    "icons": {
+      "library": "lucide-react",
+      "preferred_set": ["MapPin", "CheckCircle", "AlertTriangle", "LayoutDashboard", "Users", "Camera", "Navigation"]
+    }
+  },
+  "instructions_to_main_agent": {
+    "file_handling": "You are working with .jsx files. Do not use TS types.",
+    "auth_flow": "Implement separate login redirects for Manager (/admin) vs Supervisor (/app).",
+    "map_integration": "Use 'react-leaflet' or a simple placeholder <div> if API keys are missing, but style it to look real.",
+    "mobile_optimization": "For the Supervisor view, ensure viewport meta tag prevents zooming and inputs form-control text size is 16px to prevent iOS zoom.",
+    "testing": "Add data-testid to all inputs and buttons."
+  },
+  "universal_guidelines": [
+    "Do not use generic gradients.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Every interaction needs micro-animations.",
+    "Use 'sonner' for toasts.",
+    "Never use 'transparent' background for overlays/dropdowns.",
+    "All interactive elements must have data-testid."
+  ]
+}
