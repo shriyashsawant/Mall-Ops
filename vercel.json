@@ -17,12 +17,8 @@
     }
   },
   "env": {
-    "POSTGRES_HOST": "@postgres-host",
-    "POSTGRES_PORT": "@postgres-port",
-    "POSTGRES_USER": "@postgres-user",
-    "POSTGRES_PASSWORD": "@postgres-password",
-    "POSTGRES_DB": "@postgres-db",
-    "RESEND_API_KEY": "@resend-api-key",
-    "SENDER_EMAIL": "@sender-email"
+    "DATABASE_URL": "postgresql://postgres:Shriyash%402004@db.nqmjgjjvmgrdgawnkqbr.supabase.co:5432/postgres",
+    "RESEND_API_KEY": "re_WDRJo5S1_P4XWyE5uK5cZb6WSP7zwCWaY",
+    "SENDER_EMAIL": "shriyashsantoshsawant@gmail.com"
   }
 }
