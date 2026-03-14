@@ -797,6 +797,19 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup_event():
     initialize_db()
+@app.get("/health")
+async def health_check(db: Session = Depends(get_db)):
+    try:
+        # Try a simple query
+        db.execute(text("SELECT 1"))
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "unhealthy", "database": "error", "message": str(e)}
+
+@app.get("/")
+async def root():
+    return {"message": "Mall-Ops Backend is running", "guide": "/api/store-names"}
+
 api_router = APIRouter(prefix="/api")
 
 # ==================== AUTH ROUTES ====================
