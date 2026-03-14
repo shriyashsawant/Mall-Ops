@@ -205,6 +205,7 @@ origins = [
     "http://localhost:3000",
     "http://localhost:3001",
     "https://mall-ops.vercel.app",
+    "https://mall-ops.onrender.com",
     "https://mall-ops-api.onrender.com",
 ]
 
@@ -241,7 +242,15 @@ async def login(request: LoginRequest, response: Response, db: Session = Depends
         db.add(user)
         db.commit()
     
-    response.set_cookie(key="session_token", value=user.user_id, httponly=True, samesite="lax")
+    response.set_cookie(
+        key="session_token",
+        value=user.user_id,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=7*24*60*60,
+        path="/"
+    )
     
     return {"user": {"user_id": user.user_id, "email": user.email, "name": user.name, "picture": user.picture, "role": user.role, "mall_name": user.mall_name}, "session_token": user.user_id}
 
@@ -397,10 +406,46 @@ async def get_stores(request: Request, db: Session = Depends(get_db)):
         "store_code": s.store_code
     } for s in stores]
 
+@app.get("/api/malls")
+async def get_malls(request: Request, db: Session = Depends(get_db)):
+    await require_auth(request, db)
+    malls = db.query(Mall).all()
+    result = []
+    for m in malls:
+        store_count = db.query(Store).filter(Store.mall_id == m.mall_id).count()
+        result.append({
+            "mall_id": m.mall_id, "name": m.name, "city": m.city, "state": m.state,
+            "address": m.address, "latitude": m.latitude, "longitude": m.longitude,
+            "store_count": store_count
+        })
+    return result
+
+@app.post("/api/malls")
+async def create_mall(mall: MallCreate, request: Request, db: Session = Depends(get_db)):
+    user = await require_manager(request, db)
+    mall_id = f"mall_{uuid.uuid4().hex[:12]}"
+    new_mall = Mall(
+        mall_id=mall_id, name=mall.name, city=mall.city, state=mall.state,
+        address=mall.address, latitude=mall.latitude, longitude=mall.longitude,
+        created_by=user.user_id
+    )
+    db.add(new_mall)
+    db.commit()
+    return {"mall_id": mall_id, "name": mall.name}
+
 @app.post("/api/stores")
-async def create_store(request: Request, db: Session = Depends(get_db)):
-    await require_manager(request, db)
-    return {"message": "Store creation not fully implemented for Vercel"}
+async def create_store(store: StoreCreate, request: Request, db: Session = Depends(get_db)):
+    user = await require_manager(request, db)
+    store_id = f"store_{uuid.uuid4().hex[:12]}"
+    new_store = Store(
+        store_id=store_id, mall_id=store.mall_id, name=store.name,
+        store_code=store.store_code, latitude=store.latitude,
+        longitude=store.longitude, radius=store.radius,
+        created_by=user.user_id
+    )
+    db.add(new_store)
+    db.commit()
+    return {"store_id": store_id, "name": store.name}
 
 # ==================== SUPERVISORS ROUTES ====================
 
@@ -419,6 +464,12 @@ async def create_supervisor(supervisor: SupervisorCreate, request: Request, db: 
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Generate a random password if not provided
+    if not supervisor.password:
+        import string
+        import random
+        supervisor.password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+    
     user_id = f"sup_{uuid.uuid4().hex[:12]}"
     new_supervisor = User(
         user_id=user_id,
@@ -431,6 +482,35 @@ async def create_supervisor(supervisor: SupervisorCreate, request: Request, db: 
     )
     db.add(new_supervisor)
     db.commit()
+    
+    # Send welcome email using SendGrid if available
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail as SG_Mail
+        
+        sg_api_key = os.environ.get('SENDGRID_API_KEY')
+        sg_from = os.environ.get('SENDGRID_FROM_EMAIL')
+        
+        if sg_api_key and sg_from:
+            sg = SendGridAPIClient(sg_api_key)
+            html_content = f"""
+            <h2>Welcome to Mall Ops, {supervisor.name}!</h2>
+            <p>You have been added as a Supervisor.</p>
+            <p><strong>Email:</strong> {supervisor.email}</p>
+            <p><strong>Temporary Password:</strong> {supervisor.password}</p>
+            <p>Log in here: {os.environ.get('FRONTEND_URL', 'https://mall-ops.vercel.app')}/login</p>
+            """
+            
+            message = SG_Mail(
+                from_email=sg_from,
+                to_emails=supervisor.email,
+                subject="Welcome to Mall Ops - Your Login Credentials",
+                html_content=html_content
+            )
+            sg.send(message)
+            logger.info(f"Welcome email sent to {supervisor.email}")
+    except Exception as e:
+        logger.error(f"Failed to send welcome email: {str(e)}")
     
     return {"user_id": user_id, "email": supervisor.email, "name": supervisor.name, "message": "Supervisor created successfully"}
 

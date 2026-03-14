@@ -37,12 +37,12 @@ const Assignments = ({ user }) => {
         axios.get(`${API}/assignments`, { withCredentials: true }),
         axios.get(`${API}/supervisors`, { withCredentials: true }),
         axios.get(`${API}/stores`, { withCredentials: true }),
-        axios.get(`${API}/malls/list`, { withCredentials: true })
+        axios.get(`${API}/malls`, { withCredentials: true })
       ]);
       setAssignments(assignmentsRes.data);
       setSupervisors(supervisorsRes.data);
       setStores(storesRes.data);
-      setMalls(mallsRes.data.malls || []);
+      setMalls(mallsRes.data || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
       toast.error('Failed to load assignments');
@@ -51,30 +51,6 @@ const Assignments = ({ user }) => {
     }
   };
 
-  const handleCreateSupervisor = async (e) => {
-    e.preventDefault();
-    if (!newSupervisor.name || !newSupervisor.email || !newSupervisor.password) {
-      toast.error('Please fill all fields');
-      return;
-    }
-    
-    try {
-      await axios.post(`${API}/supervisors`, {
-        name: newSupervisor.name,
-        email: newSupervisor.email,
-        password: newSupervisor.password
-      }, { withCredentials: true });
-      
-      toast.success('Supervisor created successfully');
-      setIsAddSupervisorOpen(false);
-      setNewSupervisor({ name: '', email: '', password: '' });
-      fetchData();
-    } catch (error) {
-      console.error('Failed to create supervisor:', error);
-      toast.error(error.response?.data?.detail || 'Failed to create supervisor');
-    }
-  };
-  
   const handleAssignMall = async (e) => {
     e.preventDefault();
     if (!selectedSupervisor || !selectedMall) {
@@ -84,8 +60,8 @@ const Assignments = ({ user }) => {
     
     try {
       await axios.put(
-        `${API}/supervisors/${selectedSupervisor}/assign-mall?mall_name=${encodeURIComponent(selectedMall)}`,
-        {},
+        `${API}/supervisors/${selectedSupervisor}/assign-mall`,
+        { mall_name: selectedMall },
         { withCredentials: true }
       );
       
@@ -155,57 +131,6 @@ const Assignments = ({ user }) => {
           </div>
           
           <div className="flex gap-2">
-            <Dialog open={isAddSupervisorOpen} onOpenChange={setIsAddSupervisorOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-5 py-2 font-medium">
-                  <User className="w-4 h-4 mr-2" />
-                  Add Supervisor
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Add New Supervisor</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleCreateSupervisor} className="space-y-4">
-                  <div>
-                    <Label>Full Name</Label>
-                    <Input 
-                      value={newSupervisor.name}
-                      onChange={e => setNewSupervisor({...newSupervisor, name: e.target.value})}
-                      placeholder="John Doe"
-                      required
-                      className="bg-white"
-                    />
-                  </div>
-                  <div>
-                    <Label>Email</Label>
-                    <Input 
-                      type="email"
-                      value={newSupervisor.email}
-                      onChange={e => setNewSupervisor({...newSupervisor, email: e.target.value})}
-                      placeholder="john@example.com"
-                      required
-                      className="bg-white"
-                    />
-                  </div>
-                  <div>
-                    <Label>Password</Label>
-                    <Input 
-                      type="password"
-                      value={newSupervisor.password}
-                      onChange={e => setNewSupervisor({...newSupervisor, password: e.target.value})}
-                      placeholder="••••••••"
-                      required
-                      className="bg-white"
-                    />
-                  </div>
-                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-                    Create Supervisor
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-            
             <Dialog open={isMallDialogOpen} onOpenChange={setIsMallDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-5 py-2 font-medium">
@@ -219,7 +144,7 @@ const Assignments = ({ user }) => {
                 </DialogHeader>
                 <form onSubmit={handleAssignMall} className="space-y-4">
                   <div>
-                    <Label>Supervisor</Label>
+                    <Label>Supervisor *</Label>
                     <Select value={selectedSupervisor} onValueChange={setSelectedSupervisor}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select supervisor" />
@@ -239,17 +164,17 @@ const Assignments = ({ user }) => {
                   </div>
                   
                   <div>
-                    <Label>Mall</Label>
+                    <Label>Mall *</Label>
                     <Select value={selectedMall} onValueChange={setSelectedMall}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select mall" />
                       </SelectTrigger>
                       <SelectContent>
                         {malls.map((mall) => (
-                          <SelectItem key={mall} value={mall}>
+                          <SelectItem key={mall.mall_id} value={mall.name}>
                             <div className="flex items-center gap-2">
                               <Building2 className="w-4 h-4" />
-                              {mall}
+                              {mall.name}
                             </div>
                           </SelectItem>
                         ))}
@@ -306,7 +231,7 @@ const Assignments = ({ user }) => {
                           <SelectItem key={store.store_id} value={store.store_id}>
                             <div className="flex items-center gap-2">
                               <MapPin className="w-4 h-4" />
-                              {store.name} ({store.mall_name})
+                              {store.name} ({store.mall_name || 'N/A'})
                             </div>
                           </SelectItem>
                         ))}

@@ -31,11 +31,6 @@ const DEFAULT_TASKS = [
   "Is Energy Meter log book maintained at store"
 ];
 
-const STORE_NAMES = [
-  "Reliance Trends", "Reliance Digital", "Smart Bazaar", "Mall Management",
-  "Smart Point", "Reliance FootPrint", "Reliance Fresh"
-];
-
 const DUE_OPTIONS = [
   { value: "1", label: "1 Day" },
   { value: "7", label: "1 Week" },
@@ -78,13 +73,20 @@ const Tasks = ({ user }) => {
         axios.get(`${API}/templates`, { withCredentials: true }),
         axios.get(`${API}/stores`, { withCredentials: true }),
         axios.get(`${API}/supervisors`, { withCredentials: true }),
-        axios.get(`${API}/malls/with-stores`, { withCredentials: true })
+        axios.get(`${API}/malls`, { withCredentials: true })
       ]);
       setTasks(tasksRes.data);
       setTemplates(templatesRes.data);
       setStores(storesRes.data);
       setSupervisors(supervisorsRes.data);
-      setMallsWithStores(mallsRes.data.malls || []);
+      
+      // Group stores by mall for the checklist form
+      const malls = mallsRes.data || [];
+      const mappedMalls = malls.map(mall => ({
+        ...mall,
+        stores: storesRes.data.filter(s => s.mall_id === mall.mall_id)
+      }));
+      setMallsWithStores(mappedMalls);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };

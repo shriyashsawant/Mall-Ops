@@ -41,7 +41,9 @@ const ManagerLayout = ({ children, user }) => {
     { path: '/admin/stores', label: 'Stores', icon: Store },
     { path: '/admin/tasks', label: 'Tasks', icon: FileText },
     { path: '/admin/submissions', label: 'Submissions', icon: CheckCircle },
-    { path: '/admin/assignments', label: 'Assignments', icon: Users },
+    { path: '/admin/supervisors', label: 'Supervisors', icon: Users },
+    { path: '/admin/assignments', label: 'Assignments', icon: Layers },
+    { path: '/admin/inventory', label: 'Inventory', icon: Building2 },
   ];
   
   return (

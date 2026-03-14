@@ -696,6 +696,58 @@ def send_assignment_email(supervisor_email: str, supervisor_name: str, manager_n
 def send_supervisor_welcome_email(supervisor_email: str, supervisor_name: str, password: str, manager_name: str) -> bool:
     """Send welcome email to newly created supervisor with login credentials"""
     try:
+        # Try SendGrid first
+        if SENDGRID_API_KEY and SENDGRID_API_KEY.startswith('SG.'):
+            sg = SendGridAPIClient(SENDGRID_API_KEY)
+            
+            frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+            login_link = f"{frontend_url}/login"
+            
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    body {{ font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
+                    .content {{ background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; }}
+                    .credentials {{ background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0; }}
+                    .button {{ display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">Welcome to Mall Ops</h1>
+                    </div>
+                    <div class="content">
+                        <h2>Hello {supervisor_name},</h2>
+                        <p>{manager_name} has added you as a Supervisor to the Mall Operations System.</p>
+                        <div class="credentials">
+                            <p><strong>Email:</strong> {supervisor_email}</p>
+                            <p><strong>Temporary Password:</strong> <code style="background: #fff; padding: 4px 8px; border-radius: 4px;">{password}</code></p>
+                        </div>
+                        <p>Please log in and change your password immediately.</p>
+                        <a href="{login_link}" class="button">Log In Now</a>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            
+            message = Mail(
+                from_email=SENDGRID_FROM_EMAIL,
+                to_emails=supervisor_email,
+                subject="Welcome to Mall Ops - Your Login Credentials",
+                html_content=html_content
+            )
+            sg.send(message)
+            logger.info(f"Welcome email sent to {supervisor_email} via SendGrid")
+            return True
+
+        # Fallback to Resend
         resend.api_key = os.environ.get('RESEND_API_KEY', '')
         sender_email = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
         
@@ -711,87 +763,31 @@ def send_supervisor_welcome_email(supervisor_email: str, supervisor_name: str, p
         <html>
         <head>
             <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Welcome to Mall Ops</title>
+            <style>
+                body {{ font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
+                .content {{ background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; }}
+                .credentials {{ background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0; }}
+                .button {{ display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px; }}
+            </style>
         </head>
-        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
-                <tr>
-                    <td align="center">
-                        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            <!-- Header -->
-                            <tr>
-                                <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">Mall Operations</h1>
-                                    <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 14px;">Management System</p>
-                                </td>
-                            </tr>
-                            
-                            <!-- Content -->
-                            <tr>
-                                <td style="padding: 40px 30px;">
-                                    <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">Welcome, {supervisor_name}! 🎉</h2>
-                                    
-                                    <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                                        <strong>{manager_name}</strong> has added you to the Mall Operations Management System as a Supervisor.
-                                    </p>
-                                    
-                                    <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                                        Your login credentials are provided below. Please login and change your password after first login.
-                                    </p>
-                                    
-                                    <!-- Credentials Box -->
-                                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; padding: 25px; margin: 25px 0; border: 1px solid #e9ecef;">
-                                        <tr>
-                                            <td style="padding: 10px 0;">
-                                                <p style="color: #495057; font-size: 14px; margin: 0 0 5px 0; font-weight: 600;">Email Address</p>
-                                                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 500;">{supervisor_email}</p>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 10px 0; border-top: 1px solid #dee2e6;">
-                                                <p style="color: #495057; font-size: 14px; margin: 0 0 5px 0; font-weight: 600;">Temporary Password</p>
-                                                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 500; font-family: monospace; background: #fff; padding: 8px 12px; border-radius: 4px; display: inline-block;">{password}</p>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    
-                                    <!-- CTA Button -->
-                                    <table width="100%" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td align="center" style="padding: 30px 0;">
-                                                <a href="{login_link}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.4);">
-                                                    Login to Dashboard
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    
-                                    <p style="color: #999999; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
-                                        After logging in, you'll be able to:
-                                    </p>
-                                    <ul style="color: #666666; font-size: 14px; line-height: 1.8; margin: 10px 0 0 0; padding-left: 20px;">
-                                        <li>View and complete assigned checklists</li>
-                                        <li>Submit photos and reports from store locations</li>
-                                        <li>Track your task submissions</li>
-                                    </ul>
-                                    
-                                    <p style="color: #999999; font-size: 12px; line-height: 1.6; margin: 40px 0 0 0; border-top: 1px solid #e9ecef; padding-top: 20px;">
-                                        This is an automated message from Mall Operations Management System. Please do not reply to this email.
-                                    </p>
-                                </td>
-                            </tr>
-                            
-                            <!-- Footer -->
-                            <tr>
-                                <td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
-                                    <p style="color: #999999; font-size: 12px; margin: 0;">© 2024 Mall Operations Management System. All rights reserved.</p>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1 style="margin: 0;">Welcome to Mall Ops</h1>
+                </div>
+                <div class="content">
+                    <h2>Hello {supervisor_name},</h2>
+                    <p>{manager_name} has added you as a Supervisor to the Mall Operations System.</p>
+                    <div class="credentials">
+                        <p><strong>Email:</strong> {supervisor_email}</p>
+                        <p><strong>Temporary Password:</strong> <code style="background: #fff; padding: 4px 8px; border-radius: 4px;">{password}</code></p>
+                    </div>
+                    <p>Please log in and change your password immediately.</p>
+                    <a href="{login_link}" class="button">Log In Now</a>
+                </div>
+            </div>
         </body>
         </html>
         """
@@ -803,8 +799,8 @@ def send_supervisor_welcome_email(supervisor_email: str, supervisor_name: str, p
             "html": html_content
         }
         
-        email = resend.Emails.send(params)
-        logger.info(f"Welcome email sent to {supervisor_email}")
+        resend.Emails.send(params)
+        logger.info(f"Welcome email sent to {supervisor_email} via Resend")
         return True
         
     except Exception as e:

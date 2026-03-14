@@ -15,6 +15,7 @@ import Templates from "./pages/manager/Templates";
 import Submissions from "./pages/manager/Submissions";
 import Reports from "./pages/manager/Reports";
 import Assignments from "./pages/manager/Assignments";
+import Supervisors from "./pages/manager/Supervisors";
 import Inventory from "./pages/manager/Inventory";
 
 import SupervisorTasks from "./pages/supervisor/Tasks";
@@ -82,6 +83,7 @@ function App() {
                     <Route path="submissions" element={<Submissions user={user} />} />
                     <Route path="reports" element={<Reports user={user} />} />
                     <Route path="assignments" element={<Assignments user={user} />} />
+                    <Route path="supervisors" element={<Supervisors user={user} />} />
                     <Route path="inventory" element={<Inventory user={user} />} />
                   </Routes>
                 </ManagerLayout>
