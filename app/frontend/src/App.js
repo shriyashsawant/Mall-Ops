@@ -20,7 +20,7 @@ import Inventory from "./pages/manager/Inventory";
 import SupervisorTasks from "./pages/supervisor/Tasks";
 import SupervisorTaskDetail from "./pages/supervisor/TaskDetail";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "");
 const API = `${BACKEND_URL}/api`;
 
 function App() {

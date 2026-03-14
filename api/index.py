@@ -201,9 +201,16 @@ def require_manager(request: Request, db: Session):
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://mall-ops.vercel.app",
+    "https://mall-ops-api.onrender.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
