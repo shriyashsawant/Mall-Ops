@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends
+from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -792,11 +793,17 @@ def send_supervisor_welcome_email(supervisor_email: str, supervisor_name: str, p
 
 # ==================== APP SETUP ====================
 
-app = FastAPI()
-
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize the database
+    logger.info("Server starting up... Initializing components.")
     initialize_db()
+    yield
+    # Shutdown: Clean up resources
+    logger.info("Server shutting down... Cleaning up.")
+    engine.dispose()
+
+app = FastAPI(lifespan=lifespan)
 @app.get("/")
 async def root():
     return {"message": "Mall-Ops Backend is running", "health": "/api/health"}
@@ -2212,7 +2219,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    engine.dispose()
