@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { User, Store, Plus, Trash2, Users, MapPin, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
 
 const Assignments = ({ user }) => {
@@ -470,3 +470,5 @@ const Assignments = ({ user }) => {
 };
 
 export default Assignments;
+
+

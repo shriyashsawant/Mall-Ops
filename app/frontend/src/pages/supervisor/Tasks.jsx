@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/button';
 import { MapPin, AlertCircle, Lock, LogOut, CheckCircle, ClipboardList, Calendar, Building2, Clock, User } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
 
 const SupervisorTasks = ({ user }) => {
@@ -299,3 +299,4 @@ const SupervisorTasks = ({ user }) => {
 };
 
 export default SupervisorTasks;
+

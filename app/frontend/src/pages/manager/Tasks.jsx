@@ -8,7 +8,7 @@ import ManagerLayout from '../../components/ManagerLayout';
 import { Plus, Trash2, Calendar, Building2, CheckSquare, Clock, FileText, ClipboardList, Edit2, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
 
 const DEFAULT_TASKS = [
@@ -610,3 +610,4 @@ const Tasks = ({ user }) => {
 };
 
 export default Tasks;
+

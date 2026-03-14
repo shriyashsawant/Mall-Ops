@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Package, Plus, CheckCircle, Clock, AlertTriangle, XCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
 
 const Inventory = ({ user }) => {
@@ -209,3 +209,4 @@ const Inventory = ({ user }) => {
 };
 
 export default Inventory;
+

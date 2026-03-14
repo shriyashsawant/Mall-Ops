@@ -7,7 +7,7 @@ import { MapPin, Shield, Camera, Building2, User, Lock, Mail, ArrowRight } from 
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "");
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
 
 const LoginPage = () => {
@@ -258,3 +258,4 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+

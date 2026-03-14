@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../componen
 import { CheckCircle, XCircle, Clock, Camera, MapPin, Flag, User } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
 
 const Submissions = ({ user }) => {
@@ -266,3 +266,4 @@ const Submissions = ({ user }) => {
 };
 
 export default Submissions;
+

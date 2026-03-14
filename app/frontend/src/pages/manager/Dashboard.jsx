@@ -9,7 +9,7 @@ import {
   Activity, ArrowUpRight, ArrowDownRight, Minus
 } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
 
 const Dashboard = ({ user }) => {
@@ -412,3 +412,5 @@ const Dashboard = ({ user }) => {
 };
 
 export default Dashboard;
+
+

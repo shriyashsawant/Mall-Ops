@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { LayoutDashboard, Store, CheckCircle, FileText, LogOut, Menu, X, Layers, Users, Bell, Building2 } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
 
 const ManagerLayout = ({ children, user }) => {
@@ -153,3 +153,5 @@ const ManagerLayout = ({ children, user }) => {
 };
 
 export default ManagerLayout;
+
+

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8000").replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
 
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -64,3 +64,4 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 };
 
 export default ProtectedRoute;
+
