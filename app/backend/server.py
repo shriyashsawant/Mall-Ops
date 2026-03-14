@@ -47,9 +47,21 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     DATABASE_URL = f"postgresql://{os.environ.get('POSTGRES_USER')}:{os.environ.get('POSTGRES_PASSWORD')}@{os.environ.get('POSTGRES_HOST')}:{os.environ.get('POSTGRES_PORT')}/{os.environ.get('POSTGRES_DB')}"
 
-engine = create_engine(DATABASE_URL, echo=False)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+# Performance/Cloud Fix: Add sslmode=require if connecting to Supabase on Render
+if DATABASE_URL and "supabase" in DATABASE_URL and "sslmode" not in DATABASE_URL:
+    separator = "&" if "?" in DATABASE_URL else "?"
+    DATABASE_URL += f"{separator}sslmode=require"
+
+try:
+    engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base = declarative_base()
+except Exception as e:
+    logger.error(f"Failed to create database engine: {e}")
+    # Provide a dummy engine so the app doesn't crash during startup, but will fail gracefully on requests
+    engine = None
+    SessionLocal = None
+    Base = declarative_base()
 
 # Configure Resend (legacy)
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
@@ -259,6 +271,9 @@ from sqlalchemy import text
 
 # Seed initial data
 def seed_data():
+    if not SessionLocal:
+        logger.error("SessionLocal is not initialized. Skipping seeding.")
+        return
     db = SessionLocal()
     try:
         # Check if manager already exists
@@ -331,6 +346,10 @@ def seed_data():
         db.close()
 
 def initialize_db():
+    if not engine:
+        logger.error("Database engine is not initialized. Skipping DB setup.")
+        return
+        
     logger.info("Initializing database...")
     try:
         # Create tables
@@ -372,6 +391,7 @@ def initialize_db():
         logger.info("Database initialization complete.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
+        logger.info("Tip: If you are seeing 'Network is unreachable', please use the Supabase Connection Pooler URL (port 6543) instead of the direct one.")
 
 # ==================== Pydantic Models ====================
 

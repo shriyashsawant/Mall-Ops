@@ -24,7 +24,9 @@ Render is perfect for Python/FastAPI backends.
     *   **Build Command**: `pip install -r app/backend/requirements.txt`
     *   **Start Command**: `uvicorn app.backend.server:app --host 0.0.0.0 --port 10000`
 4.  **Environment Variables**:
-    *   `DATABASE_URL`: `postgresql://postgres:Shriyash%402004@db.nqmjgjjvmgrdgawnkqbr.supabase.co:5432/postgres`
+    *   `DATABASE_URL`: **IMPORTANT** Use the **Connection Pooler** URL from Supabase (Transaction mode).
+        *   Standard URLs like `db.xxx.supabase.co` often fail on Render with "Network Unreachable".
+        *   Instead, use the one that looks like `postgres://...:6543/postgres` or uses a `pooler` hostname.
     *   `FRONTEND_URL`: (Wait until step 3 is done, then put your Vercel URL here)
     *   `SENDGRID_API_KEY`: (Your SendGrid API Key)
     *   `SENDGRID_FROM_EMAIL`: (Your verified sender email in SendGrid)
