@@ -12,6 +12,10 @@ from datetime import datetime, timezone, timedelta
 import httpx
 import asyncio
 import resend
+import sendgrid
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, TemplateId, Personalization
+from sendgrid.helpers.mail import Email, To, Content
 
 try:
     from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
@@ -34,14 +38,22 @@ logging.basicConfig(level=logging.INFO)
 
 # ==================== DATABASE SETUP ====================
 
-POSTGRES_URL = f"postgresql://{os.environ.get('POSTGRES_USER')}:{os.environ.get('POSTGRES_PASSWORD')}@{os.environ.get('POSTGRES_HOST')}:{os.environ.get('POSTGRES_PORT')}/{os.environ.get('POSTGRES_DB')}"
+# Use DATABASE_URL if provided (Supabase), otherwise build from individual vars
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    DATABASE_URL = f"postgresql://{os.environ.get('POSTGRES_USER')}:{os.environ.get('POSTGRES_PASSWORD')}@{os.environ.get('POSTGRES_HOST')}:{os.environ.get('POSTGRES_PORT')}/{os.environ.get('POSTGRES_DB')}"
 
-engine = create_engine(POSTGRES_URL, echo=False)
+engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Configure Resend
+# Configure Resend (legacy)
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
+
+# Configure SendGrid
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
+SENDGRID_FROM_EMAIL = os.environ.get('SENDGRID_FROM_EMAIL', 'shriyashsantoshsawant@gmail.com')
+SENDGRID_TEMPLATE_ID = os.environ.get('SENDGRID_TEMPLATE_ID', 'd-fa61db22253b4efdbd16ddd2a30c3f7c')
 
 # ==================== MODELS ====================
 
@@ -516,6 +528,74 @@ def send_assignment_email(supervisor_email: str, supervisor_name: str, manager_n
                            task_title: str, store_name: str, deadline: str, task_id: str) -> bool:
     """Send email notification to supervisor about new checklist assignment"""
     try:
+        # Try SendGrid first, fallback to Resend
+        if SENDGRID_API_KEY and SENDGRID_API_KEY.startswith('SG.'):
+            sg = SendGridAPIClient(SENDGRID_API_KEY)
+            
+            frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+            task_link = f"{frontend_url}/supervisor/tasks/{task_id}"
+            
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }}
+                    .content {{ background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }}
+                    .details {{ background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+                    .detail-row {{ margin: 10px 0; }}
+                    .label {{ font-weight: bold; color: #555; }}
+                    .button {{ display: inline-block; background: #2563eb; color: white; padding: 12px 24px; 
+                              text-decoration: none; border-radius: 6px; margin-top: 20px; }}
+                    .footer {{ text-align: center; margin-top: 20px; color: #888; font-size: 12px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">New Checklist Assigned</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hello <strong>{supervisor_name}</strong>,</p>
+                        <p>A new checklist has been assigned to you by <strong>{manager_name}</strong>.</p>
+                        
+                        <div class="details">
+                            <div class="detail-row">
+                                <span class="label">Checklist:</span> {task_title}
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Store:</span> {store_name}
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Due Date:</span> {deadline}
+                            </div>
+                        </div>
+                        
+                        <a href="{task_link}" class="button">View Checklist</a>
+                        
+                        <p style="margin-top: 20px;">Please complete this checklist before the due date.</p>
+                    </div>
+                    <div class="footer">
+                        <p>Mall Operations Management System</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            
+            message = Mail(
+                from_email=SENDGRID_FROM_EMAIL,
+                to_emails=supervisor_email,
+                subject=f"New Checklist Assigned: {task_title} - Due {deadline}",
+                html_content=html_content
+            )
+            sg.send(message)
+            logger.info(f"Assignment email sent to {supervisor_email} via SendGrid for task {task_id}")
+            return True
+        
+        # Fallback to Resend
         resend.api_key = os.environ.get('RESEND_API_KEY', '')
         sender_email = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
         
@@ -591,6 +671,125 @@ def send_assignment_email(supervisor_email: str, supervisor_name: str, manager_n
         logger.error(f"Failed to send assignment email: {str(e)}")
         return False
 
+
+def send_supervisor_welcome_email(supervisor_email: str, supervisor_name: str, password: str, manager_name: str) -> bool:
+    """Send welcome email to newly created supervisor with login credentials"""
+    try:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+        sender_email = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+        
+        if not resend.api_key or resend.api_key == 'your_resend_api_key_here':
+            logger.warning("Resend API key not configured, skipping email")
+            return False
+        
+        frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+        login_link = f"{frontend_url}/login"
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Welcome to Mall Ops</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+                <tr>
+                    <td align="center">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <!-- Header -->
+                            <tr>
+                                <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">Mall Operations</h1>
+                                    <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 14px;">Management System</p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Content -->
+                            <tr>
+                                <td style="padding: 40px 30px;">
+                                    <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">Welcome, {supervisor_name}! 🎉</h2>
+                                    
+                                    <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                        <strong>{manager_name}</strong> has added you to the Mall Operations Management System as a Supervisor.
+                                    </p>
+                                    
+                                    <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                                        Your login credentials are provided below. Please login and change your password after first login.
+                                    </p>
+                                    
+                                    <!-- Credentials Box -->
+                                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; padding: 25px; margin: 25px 0; border: 1px solid #e9ecef;">
+                                        <tr>
+                                            <td style="padding: 10px 0;">
+                                                <p style="color: #495057; font-size: 14px; margin: 0 0 5px 0; font-weight: 600;">Email Address</p>
+                                                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 500;">{supervisor_email}</p>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 10px 0; border-top: 1px solid #dee2e6;">
+                                                <p style="color: #495057; font-size: 14px; margin: 0 0 5px 0; font-weight: 600;">Temporary Password</p>
+                                                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 500; font-family: monospace; background: #fff; padding: 8px 12px; border-radius: 4px; display: inline-block;">{password}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                    <!-- CTA Button -->
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td align="center" style="padding: 30px 0;">
+                                                <a href="{login_link}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.4);">
+                                                    Login to Dashboard
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                    <p style="color: #999999; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
+                                        After logging in, you'll be able to:
+                                    </p>
+                                    <ul style="color: #666666; font-size: 14px; line-height: 1.8; margin: 10px 0 0 0; padding-left: 20px;">
+                                        <li>View and complete assigned checklists</li>
+                                        <li>Submit photos and reports from store locations</li>
+                                        <li>Track your task submissions</li>
+                                    </ul>
+                                    
+                                    <p style="color: #999999; font-size: 12px; line-height: 1.6; margin: 40px 0 0 0; border-top: 1px solid #e9ecef; padding-top: 20px;">
+                                        This is an automated message from Mall Operations Management System. Please do not reply to this email.
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Footer -->
+                            <tr>
+                                <td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                                    <p style="color: #999999; font-size: 12px; margin: 0;">© 2024 Mall Operations Management System. All rights reserved.</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
+        
+        params = {
+            "from": f"Mall Ops <{sender_email}>",
+            "to": supervisor_email,
+            "subject": f"Welcome to Mall Operations - Your Login Credentials",
+            "html": html_content
+        }
+        
+        email = resend.Emails.send(params)
+        logger.info(f"Welcome email sent to {supervisor_email}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send welcome email: {str(e)}")
+        return False
+
 # ==================== APP SETUP ====================
 
 app = FastAPI()
@@ -610,7 +809,7 @@ class LoginRequest(BaseModel):
 class SupervisorCreate(BaseModel):
     email: str
     name: str
-    password: str
+    password: Optional[str] = None
 
 @api_router.post("/auth/login")
 async def login(request: LoginRequest, response: Response, db: Session = Depends(get_db)):
@@ -1176,6 +1375,12 @@ async def create_supervisor(supervisor: SupervisorCreate, request: Request, db: 
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Generate a random password if not provided
+    import random
+    import string
+    if not supervisor.password:
+        supervisor.password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+    
     user_id = f"sup_{uuid.uuid4().hex[:12]}"
     new_supervisor = User(
         user_id=user_id,
@@ -1189,7 +1394,16 @@ async def create_supervisor(supervisor: SupervisorCreate, request: Request, db: 
     db.add(new_supervisor)
     db.commit()
     
-    return {"user_id": user_id, "email": supervisor.email, "name": supervisor.name, "message": "Supervisor created successfully"}
+    # Send welcome email to supervisor
+    user = await require_auth(request, db)
+    email_sent = send_supervisor_welcome_email(
+        supervisor_email=supervisor.email,
+        supervisor_name=supervisor.name,
+        password=supervisor.password,
+        manager_name=user.name or user.email.split('@')[0]
+    )
+    
+    return {"user_id": user_id, "email": supervisor.email, "name": supervisor.name, "message": "Supervisor created successfully", "email_sent": email_sent}
 
 @api_router.put("/supervisors/{user_id}/assign-mall")
 async def assign_supervisor_to_mall(user_id: str, mall_name: str, request: Request, db: Session = Depends(get_db)):
@@ -1223,6 +1437,42 @@ async def get_store_names():
 async def get_malls_list(db: Session = Depends(get_db)):
     malls = db.query(Mall).all()
     return {"malls": [m.name for m in malls]}
+
+@api_router.get("/malls/hierarchical")
+async def get_malls_hierarchical(db: Session = Depends(get_db)):
+    """
+    Get all malls with their stores in a hierarchical format.
+    This is used for dropdown selection in task creation.
+    """
+    malls = db.query(Mall).all()
+    
+    result = []
+    for mall in malls:
+        stores = db.query(Store).filter(Store.mall_id == mall.mall_id).all()
+        store_list = []
+        for store in stores:
+            store_list.append({
+                "store_id": store.store_id,
+                "name": store.name,
+                "store_code": store.store_code,
+                "location": {
+                    "lat": store.latitude if store.latitude else mall.latitude,
+                    "lng": store.longitude if store.longitude else mall.longitude
+                },
+                "radius": store.radius
+            })
+        
+        result.append({
+            "mall_id": mall.mall_id,
+            "name": mall.name,
+            "city": mall.city,
+            "state": mall.state,
+            "latitude": mall.latitude,
+            "longitude": mall.longitude,
+            "stores": store_list
+        })
+    
+    return {"malls": result}
 
 @api_router.get("/assignments")
 async def get_assignments(request: Request, db: Session = Depends(get_db)):
@@ -1419,7 +1669,30 @@ async def create_submission(submission: SubmissionCreate, request: Request, db: 
     db.add(new_submission)
     db.commit()
     
-    return {"submission_id": submission_id, "status": "submitted"}
+@api_router.get("/submissions")
+async def get_submissions(request: Request, limit: int = 100, db: Session = Depends(get_db)):
+    user = await require_auth(request, db)
+    
+    query = db.query(TaskSubmission)
+    if user.role != "manager":
+        query = query.filter(TaskSubmission.supervisor_id == user.user_id)
+    
+    submissions = query.order_by(TaskSubmission.submitted_at.desc()).limit(limit).all()
+    
+    result = []
+    for s in submissions:
+        task = db.query(Task).filter(Task.task_id == s.task_id).first()
+        supervisor = db.query(User).filter(User.user_id == s.supervisor_id).first()
+        result.append({
+            "submission_id": s.submission_id, "task_id": s.task_id, "supervisor_id": s.supervisor_id,
+            "photos": json.loads(s.photos) if s.photos else [],
+            "before_photos": json.loads(s.before_photos) if s.before_photos else [],
+            "remarks": s.remarks, "location": {"lat": s.latitude, "lng": s.longitude},
+            "status": s.status, "submitted_at": s.submitted_at, "ai_photo_analysis": s.ai_photo_analysis,
+            "task_info": {"task_id": task.task_id, "title": task.title, "description": task.description, "priority": task.priority} if task else None,
+            "supervisor_info": {"user_id": supervisor.user_id, "name": supervisor.name} if supervisor else None
+        })
+    return result
 
 @api_router.get("/submissions/pending")
 async def get_pending_submissions(request: Request, db: Session = Depends(get_db)):
@@ -1730,14 +2003,187 @@ async def update_inventory_request(request_id: str, status: str, request: Reques
     
     return {"message": "Request updated"}
 
+# ==================== SEED DATA ENDPOINTS ====================
+
+# Mall coordinates for seeding
+MALLS_DATA = [
+    # Pune Malls
+    {"name": "Seasons Mall", "latitude": 18.519882, "longitude": 73.931274, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Amanora Mall", "latitude": 18.518704, "longitude": 73.934200, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Phoenix Marketcity Pune", "latitude": 18.5619, "longitude": 73.9169, "city": "Pune", "state": "Maharashtra"},
+    {"name": "ICC Pavillion Mall", "latitude": 18.5308, "longitude": 73.8366, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Westend Mall", "latitude": 18.5637, "longitude": 73.8075, "city": "Pune", "state": "Maharashtra"},
+    {"name": "KOPA Mall", "latitude": 18.5367, "longitude": 73.8945, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Kumar Pacific Mall", "latitude": 18.5018, "longitude": 73.8726, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Aero Mall", "latitude": 18.5793, "longitude": 73.9091, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Creaticity Mall", "latitude": 18.5610, "longitude": 73.9114, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Tribeca Highstreet", "latitude": 18.5292, "longitude": 73.9073, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Phoenix Mall of the Millennium", "latitude": 18.6003, "longitude": 73.7586, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Alpha One Mall", "latitude": 18.6281, "longitude": 73.7997, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Paranjape Mall", "latitude": 18.5117, "longitude": 73.8070, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Ascent Mall", "latitude": 18.6120, "longitude": 73.7890, "city": "Pune", "state": "Maharashtra"},
+    # Standalone Locations
+    {"name": "Baner", "latitude": 18.5590, "longitude": 73.7868, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Kharadi", "latitude": 18.5516, "longitude": 73.9340, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Wagholi", "latitude": 18.5793, "longitude": 74.0260, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Undri", "latitude": 18.4515, "longitude": 73.9077, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Pashan Road", "latitude": 18.5421, "longitude": 73.8027, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Vishrantwadi", "latitude": 18.5821, "longitude": 73.8785, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Bhagirathi Square", "latitude": 18.5315, "longitude": 73.8567, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Loni Kalbhor", "latitude": 18.4731, "longitude": 74.0127, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Chakan", "latitude": 18.7606, "longitude": 73.8636, "city": "Pune", "state": "Maharashtra"},
+    {"name": "Kurkumbh", "latitude": 18.4074, "longitude": 74.0534, "city": "Pune", "state": "Maharashtra"},
+]
+
+# Store name to mall mapping keywords
+MALL_KEYWORDS = {
+    "Seasons Mall": ["Seasons Mall", "Seasons"],
+    "Amanora Mall": ["Amanora"],
+    "Phoenix Marketcity Pune": ["Phoenix Market", "Phonix Market", "Market City"],
+    "ICC Pavillion Mall": ["ICC", "Pavillion"],
+    "Westend Mall": ["Westend", "West End"],
+    "KOPA Mall": ["KOPA"],
+    "Kumar Pacific Mall": ["Kumar Pacific"],
+    "Aero Mall": ["Aero"],
+    "Creaticity Mall": ["Creaticity"],
+    "Tribeca Highstreet": ["Tribeca"],
+    "Phoenix Mall of the Millennium": ["Millennium"],
+    "Alpha One Mall": ["Alpha One"],
+    "Paranjape Mall": ["Paranjape"],
+    "Ascent Mall": ["Ascent"],
+    "Baner": ["Baner"],
+    "Kharadi": ["Kharadi", "Khardi"],
+    "Wagholi": ["Wagholi"],
+    "Undri": ["Undri"],
+    "Pashan Road": ["Pashan"],
+    "Vishrantwadi": ["Vishrantwadi"],
+    "Bhagirathi Square": ["Bhagirathi"],
+    "Loni Kalbhor": ["Loni Kalbhor"],
+    "Chakan": ["Chakan"],
+    "Kurkumbh": ["Kurkumbh"],
+}
+
+
+def find_mall_for_store(store_name):
+    """Find the mall that matches the store name based on keywords."""
+    if not store_name:
+        return None
+    
+    store_name_lower = str(store_name).lower()
+    
+    for mall_name, keywords in MALL_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword.lower() in store_name_lower:
+                return mall_name
+    
+    return None
+
+
+@api_router.post("/seed/malls")
+async def seed_malls(request: Request, db: Session = Depends(get_db)):
+    """
+    Seed the database with malls from the predefined list.
+    This endpoint adds all the malls with their coordinates for geofencing.
+    """
+    await require_manager(request, db)
+    
+    malls_created = 0
+    malls_skipped = 0
+    
+    for mall_data in MALLS_DATA:
+        # Check if mall already exists
+        existing_mall = db.query(Mall).filter(
+            Mall.name == mall_data["name"],
+            Mall.city == mall_data["city"]
+        ).first()
+        
+        if existing_mall:
+            malls_skipped += 1
+            logger.info(f"Mall already exists: {mall_data['name']}")
+        else:
+            mall_id = f"mall_{uuid.uuid4().hex[:12]}"
+            new_mall = Mall(
+                mall_id=mall_id,
+                name=mall_data["name"],
+                city=mall_data["city"],
+                state=mall_data["state"],
+                address="",
+                latitude=mall_data["latitude"],
+                longitude=mall_data["longitude"]
+            )
+            db.add(new_mall)
+            db.commit()
+            malls_created += 1
+            logger.info(f"Created mall: {mall_data['name']}")
+    
+    return {
+        "message": "Malls seeded successfully",
+        "malls_created": malls_created,
+        "malls_skipped": malls_skipped
+    }
+
+
+@api_router.get("/malls/with-stores")
+async def get_malls_with_stores(db: Session = Depends(get_db)):
+    """
+    Get all malls with their stores in a hierarchical format for dropdown.
+    Returns malls grouped with their stores for easy selection.
+    """
+    malls = db.query(Mall).all()
+    
+    result = []
+    for mall in malls:
+        stores = db.query(Store).filter(Store.mall_id == mall.mall_id).all()
+        store_list = []
+        for store in stores:
+            # Use store location if available, otherwise use mall location
+            lat = store.latitude if store.latitude else mall.latitude
+            lng = store.longitude if store.longitude else mall.longitude
+            
+            store_list.append({
+                "store_id": store.store_id,
+                "name": store.name,
+                "store_code": store.store_code,
+                "location": {"lat": lat, "lng": lng},
+                "radius": store.radius
+            })
+        
+        result.append({
+            "mall_id": mall.mall_id,
+            "name": mall.name,
+            "city": mall.city,
+            "state": mall.state,
+            "latitude": mall.latitude,
+            "longitude": mall.longitude,
+            "stores": store_list
+        })
+    
+    return {"malls": result}
+
 # ==================== MOUNT ROUTER ====================
 
 app.include_router(api_router)
 
+# Handle CORS for development and production
+origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
+
+# Add production URL from environment variable if set
+frontend_url = os.environ.get("FRONTEND_URL")
+if frontend_url:
+    origins.append(frontend_url)
+    # Also add the URL without trailing slash if present
+    if frontend_url.endswith("/"):
+        origins.append(frontend_url[:-1])
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

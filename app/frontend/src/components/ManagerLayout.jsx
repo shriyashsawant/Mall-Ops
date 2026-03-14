@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { LayoutDashboard, Store, CheckCircle, FileText, LogOut, Menu, X, Layers, Users, Bell, Building2 } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8001";
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
 const API = `${BACKEND_URL}/api`;
 
 const ManagerLayout = ({ children, user }) => {
@@ -113,7 +113,7 @@ const ManagerLayout = ({ children, user }) => {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-white">
           <div className="flex items-center gap-3 mb-4">
             <img
-              src={user?.picture || 'https://via.placeholder.com/40'}
+              src={user?.picture || '/avatar.png'}
               alt={user?.name}
               className="w-10 h-10 rounded-full border-2 border-slate-200"
             />

@@ -47,9 +47,12 @@ const Tasks = ({ user }) => {
   const [tasks, setTasks] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [stores, setStores] = useState([]);
+  const [mallsWithStores, setMallsWithStores] = useState([]);
+  const [selectedMallId, setSelectedMallId] = useState('');
   const [supervisors, setSupervisors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('checklists');
+  const [seeding, setSeeding] = useState(false);
   
   // Checklist form state
   const [showChecklistForm, setShowChecklistForm] = useState(false);
@@ -70,18 +73,34 @@ const Tasks = ({ user }) => {
   
   const loadData = async () => {
     try {
-      const [tasksRes, templatesRes, storesRes, supervisorsRes] = await Promise.all([
+      const [tasksRes, templatesRes, storesRes, supervisorsRes, mallsRes] = await Promise.all([
         axios.get(`${API}/tasks`, { withCredentials: true }),
         axios.get(`${API}/templates`, { withCredentials: true }),
         axios.get(`${API}/stores`, { withCredentials: true }),
-        axios.get(`${API}/supervisors`, { withCredentials: true })
+        axios.get(`${API}/supervisors`, { withCredentials: true }),
+        axios.get(`${API}/malls/with-stores`, { withCredentials: true })
       ]);
       setTasks(tasksRes.data);
       setTemplates(templatesRes.data);
       setStores(storesRes.data);
       setSupervisors(supervisorsRes.data);
+      setMallsWithStores(mallsRes.data.malls || []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
+  };
+
+  // Seed malls to database
+  const handleSeedMalls = async () => {
+    setSeeding(true);
+    try {
+      const response = await axios.post(`${API}/seed/malls`, {}, { withCredentials: true });
+      toast.success(`Seeded ${response.data.malls_created} malls`);
+      loadData(); // Reload to get the new malls
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to seed malls');
+    } finally {
+      setSeeding(false);
+    }
   };
 
   // Template handlers
@@ -217,7 +236,11 @@ const Tasks = ({ user }) => {
   const handleCreateChecklist = async (e) => {
     e.preventDefault();
     if (!checklistForm.template_id) { toast.error('Select a template'); return; }
-    if (!checklistForm.store_id) { toast.error('Select a store'); return; }
+    if (!checklistForm.store_id) { toast.error('Select a mall and store'); return; }
+    
+    // Get selected mall info for geofencing
+    const selectedMall = mallsWithStores.find(m => m.mall_id === selectedMallId);
+    const selectedStore = selectedMall?.stores.find(s => s.store_id === checklistForm.store_id);
     
     try {
       const dueDate = new Date();
@@ -226,17 +249,17 @@ const Tasks = ({ user }) => {
       await axios.post(`${API}/tasks`, {
         store_id: checklistForm.store_id,
         supervisor_id: checklistForm.supervisor_id || null,
-        title: `Checklist - ${checklistForm.store_id}`,
+        title: `Checklist - ${selectedStore?.name || checklistForm.store_id}`,
         description: `Checklist with ${selectedTasks.length} tasks`,
         deadline: dueDate.toISOString(),
         priority: 'high',
         photo_required: true,
         before_after_photos: false,
         max_photos: 5,
-        store_code: checklistForm.store_code ? parseInt(checklistForm.store_code) : null,
-        store_name: checklistForm.store_id,
-        city: 'Pune',
-        state: 'ROOM 1 (Rest of Maharastra - 1)',
+        store_code: selectedStore?.store_code ? parseInt(selectedStore.store_code) : (checklistForm.store_code ? parseInt(checklistForm.store_code) : null),
+        store_name: selectedStore?.name || checklistForm.store_id,
+        city: selectedMall?.city || 'Pune',
+        state: selectedMall?.state || 'Maharashtra',
         checklist_date: new Date().toISOString().split('T')[0]
       }, { withCredentials: true });
       
@@ -244,6 +267,7 @@ const Tasks = ({ user }) => {
       setShowChecklistForm(false);
       setChecklistForm({ template_id: '', store_id: '', store_name: '', store_code: '', due_days: '1', supervisor_id: '' });
       setSelectedTasks([]);
+      setSelectedMallId('');
       loadData();
     } catch (err) { toast.error(err.response?.data?.detail || 'Failed to create checklist'); }
   };
@@ -265,6 +289,7 @@ const Tasks = ({ user }) => {
     setChecklistForm({ template_id: '', store_id: '', store_name: '', store_code: '', due_days: '1', supervisor_id: '' });
     setTemplateForm({ name: '', description: '' });
     setTemplateTasks([]);
+    setSelectedMallId('');
   };
 
   const formatDate = (date) => {
@@ -333,27 +358,66 @@ const Tasks = ({ user }) => {
                     </select>
                   </div>
                   <div>
-                    <Label className="text-amber-700">Store *</Label>
+                    <Label className="text-amber-700">Mall / Location *</Label>
                     <select 
-                      value={checklistForm.store_id} 
+                      value={selectedMallId} 
                       onChange={e => {
+                        setSelectedMallId(e.target.value);
                         setChecklistForm({
                           ...checklistForm, 
-                          store_id: e.target.value,
-                          store_name: e.target.value
+                          store_id: '',
+                          store_name: ''
                         });
                       }}
                       className="w-full h-10 px-3 rounded-md border border-slate-200 bg-white"
                     >
-                      <option value="">Select store</option>
-                      {STORE_NAMES.map(n => (
-                        <option key={n} value={n}>{n}</option>
+                      <option value="">Select Mall / Location</option>
+                      {mallsWithStores.map(mall => (
+                        <option key={mall.mall_id} value={mall.mall_id}>
+                          {mall.name} ({mall.stores?.length || 0} stores)
+                        </option>
+                      ))}
+                    </select>
+                    {mallsWithStores.length === 0 && (
+                      <button 
+                        type="button"
+                        onClick={handleSeedMalls}
+                        disabled={seeding}
+                        className="mt-2 text-xs text-blue-600 hover:underline"
+                      >
+                        {seeding ? 'Seeding...' : 'Click here to add malls with coordinates'}
+                      </button>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-amber-700">Store *</Label>
+                    <select 
+                      value={checklistForm.store_id} 
+                      onChange={e => {
+                        const selectedStore = selectedMallId ? 
+                          mallsWithStores.find(m => m.mall_id === selectedMallId)?.stores.find(s => s.store_id === e.target.value) :
+                          null;
+                        setChecklistForm({
+                          ...checklistForm, 
+                          store_id: e.target.value,
+                          store_name: selectedStore?.name || e.target.value,
+                          store_code: selectedStore?.store_code || ''
+                        });
+                      }}
+                      className="w-full h-10 px-3 rounded-md border border-slate-200 bg-white"
+                      disabled={!selectedMallId}
+                    >
+                      <option value="">{selectedMallId ? 'Select store' : 'Select mall first'}</option>
+                      {selectedMallId && mallsWithStores.find(m => m.mall_id === selectedMallId)?.stores.map(store => (
+                        <option key={store.store_id} value={store.store_id}>
+                          {store.name} {store.store_code ? `(${store.store_code})` : ''}
+                        </option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <Label className="text-amber-700">Store Code *</Label>
-                    <Input type="number" value={checklistForm.store_code} onChange={e => setChecklistForm({...checklistForm, store_code: e.target.value})} placeholder="101" required className="bg-white" />
+                    <Label className="text-amber-700">Store Code</Label>
+                    <Input type="number" value={checklistForm.store_code} onChange={e => setChecklistForm({...checklistForm, store_code: e.target.value})} placeholder="Auto-filled from store" className="bg-white" />
                   </div>
                   <div>
                     <Label className="text-amber-700">Due Within *</Label>

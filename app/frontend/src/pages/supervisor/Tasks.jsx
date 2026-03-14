@@ -161,7 +161,7 @@ const SupervisorTasks = ({ user }) => {
         <Card className="p-4 bg-white border border-slate-200 rounded-xl mb-6">
           <div className="flex items-center gap-3">
             <img
-              src={user?.picture || 'https://via.placeholder.com/48'}
+              src={user?.picture || '/avatar.png'}
               alt={user?.name}
               className="w-12 h-12 rounded-full border-2 border-slate-200"
             />

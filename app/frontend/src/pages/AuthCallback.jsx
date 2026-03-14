@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
-const BACKEND_URL = "http://localhost:8001";
+const BACKEND_URL = "http://localhost:8000";
 const API = `${BACKEND_URL}/api`;
 
 const AuthCallback = () => {

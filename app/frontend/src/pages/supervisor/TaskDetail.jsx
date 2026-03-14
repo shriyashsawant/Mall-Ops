@@ -9,7 +9,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { MapPin, Camera, CheckCircle, XCircle, Clock, Building2, Calendar, AlertTriangle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const SupervisorTaskDetail = ({ user }) => {

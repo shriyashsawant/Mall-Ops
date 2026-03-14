@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Mall Operations</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;}
+    </style>
+    <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a;">
+    <!-- Preheader -->
+    <div style="display: none; font-size: 1px; color: #fefefe; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
+        Welcome to Mall Operations - Your login credentials are ready. Click to access your dashboard and start managing store checklists.
+    </div>
+    
+    <!-- Main Container -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0f172a; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <!-- Logo/Brand Header -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px;">
+                    <tr>
+                        <td style="text-align: center; padding-bottom: 30px;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">
+                                <span style="color: #818cf8;">Mall</span> Operations
+                            </h1>
+                            <p style="color: #94a3b8; margin: 8px 0 0 0; font-size: 14px; letter-spacing: 2px; text-transform: uppercase;">Management System</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <!-- Main Card -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+                    <!-- Gradient Accent Bar -->
+                    <tr>
+                        <td style="height: 6px; background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);"></td>
+                    </tr>
+                    
+                    <!-- Welcome Content -->
+                    <tr>
+                        <td style="padding: 50px 40px;">
+                            <!-- Avatar Circle -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding-bottom: 30px;">
+                                        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);">
+                                            <span style="color: #ffffff; font-size: 32px; font-weight: 700;">{{supervisor_name_initials}}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <h2 style="color: #1e293b; margin: 0 0 10px 0; font-size: 28px; font-weight: 700; text-align: center; line-height: 1.2;">
+                                Welcome, {{supervisor_name}}! 🎉
+                            </h2>
+                            
+                            <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0; text-align: center;">
+                                <strong>{{manager_name}}</strong> has added you to the Mall Operations Management System as a Supervisor.
+                            </p>
+                            
+                            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 30px 0; text-align: center;">
+                                Your login credentials are provided below. Please login and change your password after first access.
+                            </p>
+                            
+                            <!-- Credentials Card -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 30px; margin: 30px 0; border: 1px solid #e2e8f0;">
+                                <tr>
+                                    <td>
+                                        <table width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="padding-bottom: 20px;">
+                                                    <p style="color: #94a3b8; font-size: 11px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Email Address</p>
+                                                    <p style="color: #1e293b; font-size: 16px; margin: 0; font-weight: 600;">{{supervisor_email}}</p>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="border-top: 1px solid #cbd5e1; padding-top: 20px;">
+                                                    <p style="color: #94a3b8; font-size: 11px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Temporary Password</p>
+                                                    <p style="color: #1e293b; font-size: 18px; margin: 0; font-weight: 700; font-family: 'Courier New', monospace; letter-spacing: 2px;">{{password}}</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- CTA Button -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 35px 0 25px 0;">
+                                        <a href="{{login_url}}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #ffffff; padding: 18px 50px; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: 600; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.45); transition: transform 0.2s, box-shadow 0.2s;">
+                                            Login to Dashboard
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Features List -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; border-radius: 12px; padding: 25px; margin-top: 25px;">
+                                <tr>
+                                    <td>
+                                        <p style="color: #64748b; font-size: 13px; margin: 0 0 15px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">After logging in, you'll be able to:</p>
+                                        <ul style="color: #475569; font-size: 14px; line-height: 1.9; margin: 0; padding-left: 20px;">
+                                            <li>View and complete assigned checklists</li>
+                                            <li>Submit photos and reports from store locations</li>
+                                            <li>Track your task submissions</li>
+                                            <li>Receive geolocation-verified submissions</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Security Note -->
+                            <p style="color: #94a3b8; font-size: 12px; line-height: 1.6; margin: 35px 0 0 0; text-align: center; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                                🔒 For security reasons, please change your password after first login.<br>
+                                This is an automated message from Mall Operations Management System.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer Gradient -->
+                    <tr>
+                        <td style="height: 4px; background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);"></td>
+                    </tr>
+                </table>
+                
+                <!-- Bottom Footer -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; padding-top: 30px;">
+                    <tr>
+                        <td style="text-align: center;">
+                            <p style="color: #64748b; font-size: 12px; margin: 0;">© 2024 Mall Operations Management System. All rights reserved.</p>
+                            <p style="color: #475569; font-size: 11px; margin: 10px 0 0 0;">
+                                <a href="{{unsubscribe_url}}" style="color: #64748b; text-decoration: underline;">Unsubscribe</a>
+                                &nbsp;|&nbsp;
+                                <a href="{{company_website}}" style="color: #64748b; text-decoration: underline;">Visit Website</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

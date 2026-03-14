@@ -20,7 +20,7 @@ import Inventory from "./pages/manager/Inventory";
 import SupervisorTasks from "./pages/supervisor/Tasks";
 import SupervisorTaskDetail from "./pages/supervisor/TaskDetail";
 
-const BACKEND_URL = "http://localhost:8001";
+const BACKEND_URL = "http://localhost:8000";
 const API = `${BACKEND_URL}/api`;
 
 function App() {
