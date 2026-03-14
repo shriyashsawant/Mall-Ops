@@ -906,8 +906,8 @@ async def login(request: LoginRequest, response: Response, db: Session = Depends
         key="session_token",
         value=session_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,
+        samesite="none",
         max_age=7*24*60*60,
         path="/"
     )
