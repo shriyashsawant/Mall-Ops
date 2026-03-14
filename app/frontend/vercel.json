@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "installCommand": "npm install",
-  "framework": "react",
+  "framework": "create-react-app",
   "env": {
     "REACT_APP_BACKEND_URL": "@backend-url"
   }
