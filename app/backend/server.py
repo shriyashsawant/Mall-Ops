@@ -797,20 +797,28 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup_event():
     initialize_db()
-@app.get("/health")
-async def health_check(db: Session = Depends(get_db)):
-    try:
-        # Try a simple query
-        db.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected"}
-    except Exception as e:
-        return {"status": "unhealthy", "database": "error", "message": str(e)}
-
 @app.get("/")
 async def root():
-    return {"message": "Mall-Ops Backend is running", "guide": "/api/store-names"}
+    return {"message": "Mall-Ops Backend is running", "health": "/api/health"}
 
 api_router = APIRouter(prefix="/api")
+
+@api_router.get("/health")
+async def health_check(db: Session = Depends(get_db)):
+    health_info = {"status": "healthy", "checks": {}}
+    try:
+        # Check database
+        db.execute(text("SELECT 1"))
+        health_info["checks"]["database"] = "connected"
+    except Exception as e:
+        health_info["status"] = "unhealthy"
+        health_info["checks"]["database"] = f"error: {str(e)}"
+    
+    health_info["env"] = {
+        "has_database_url": bool(os.environ.get('DATABASE_URL')),
+        "has_sendgrid_key": bool(os.environ.get('SENDGRID_API_KEY'))
+    }
+    return health_info
 
 # ==================== AUTH ROUTES ====================
 
