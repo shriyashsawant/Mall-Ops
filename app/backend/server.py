@@ -13,6 +13,9 @@ import httpx
 import asyncio
 import resend
 import sendgrid
+import json
+import random
+import string
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, TemplateId, Personalization
 from sendgrid.helpers.mail import Email, To, Content
@@ -253,48 +256,6 @@ class InventoryRequest(Base):
 
 from sqlalchemy import text
 
-# Create tables
-Base.metadata.create_all(bind=engine)
-
-# Add new columns if they don't exist (for existing databases)
-try:
-    with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS mall_name VARCHAR DEFAULT ''"))
-        conn.execute(text("ALTER TABLE stores ADD COLUMN IF NOT EXISTS mall_name VARCHAR DEFAULT ''"))
-        conn.execute(text("ALTER TABLE stores ADD COLUMN IF NOT EXISTS store_code INTEGER"))
-        conn.execute(text("ALTER TABLE stores ADD COLUMN IF NOT EXISTS mall_id VARCHAR"))
-        
-        # New columns for tasks
-        conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS store_code INTEGER"))
-        conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS store_name VARCHAR"))
-        conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS city VARCHAR DEFAULT 'Pune'"))
-        conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS state VARCHAR DEFAULT 'ROOM 1 (Rest of Maharastra - 1)'"))
-        conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS checklist_date VARCHAR"))
-        conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS supervisor_id VARCHAR"))
-        
-        conn.commit()
-        
-        # Create malls table if not exists
-        conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS malls (
-                mall_id VARCHAR PRIMARY KEY,
-                name VARCHAR NOT NULL,
-                city VARCHAR DEFAULT 'Pune',
-                state VARCHAR DEFAULT 'Maharashtra',
-                address VARCHAR DEFAULT '',
-                latitude FLOAT,
-                longitude FLOAT,
-                created_by VARCHAR,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """))
-        conn.commit()
-        conn.execute(text("ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS title VARCHAR"))
-        conn.execute(text("ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS mall_name VARCHAR DEFAULT ''"))
-        conn.commit()
-except Exception as e:
-    logger.warning(f"Could not add columns (may already exist): {e}")
-
 # Seed initial data
 def seed_data():
     db = SessionLocal()
@@ -362,15 +323,54 @@ def seed_data():
         
         db.commit()
         logger.info(f"Created {len(task_templates)} task templates")
-        logger.info(f"Available store names: {store_names}")
-        
     except Exception as e:
         logger.error(f"Seed error: {e}")
         db.rollback()
     finally:
         db.close()
 
-seed_data()
+def initialize_db():
+    logger.info("Initializing database...")
+    try:
+        # Create tables
+        Base.metadata.create_all(bind=engine)
+        
+        # Add new columns if they don't exist
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS mall_name VARCHAR DEFAULT ''"))
+            conn.execute(text("ALTER TABLE stores ADD COLUMN IF NOT EXISTS mall_name VARCHAR DEFAULT ''"))
+            conn.execute(text("ALTER TABLE stores ADD COLUMN IF NOT EXISTS store_code INTEGER"))
+            conn.execute(text("ALTER TABLE stores ADD COLUMN IF NOT EXISTS mall_id VARCHAR"))
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS store_code INTEGER"))
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS store_name VARCHAR"))
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS city VARCHAR DEFAULT 'Pune'"))
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS state VARCHAR DEFAULT 'ROOM 1 (Rest of Maharastra - 1)'"))
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS checklist_date VARCHAR"))
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS supervisor_id VARCHAR"))
+            
+            # Create malls table if not exists
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS malls (
+                    mall_id VARCHAR PRIMARY KEY,
+                    name VARCHAR NOT NULL,
+                    city VARCHAR DEFAULT 'Pune',
+                    state VARCHAR DEFAULT 'Maharashtra',
+                    address VARCHAR DEFAULT '',
+                    latitude FLOAT,
+                    longitude FLOAT,
+                    created_by VARCHAR,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.execute(text("ALTER TABLE task_templates ADD COLUMN IF NOT EXISTS title VARCHAR"))
+            conn.execute(text("ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS mall_name VARCHAR DEFAULT ''"))
+            conn.commit()
+        
+        # Seed initial data
+        seed_data()
+        logger.info("Database initialization complete.")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
 
 # ==================== Pydantic Models ====================
 
@@ -793,6 +793,10 @@ def send_supervisor_welcome_email(supervisor_email: str, supervisor_name: str, p
 # ==================== APP SETUP ====================
 
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup_event():
+    initialize_db()
 api_router = APIRouter(prefix="/api")
 
 # ==================== AUTH ROUTES ====================
